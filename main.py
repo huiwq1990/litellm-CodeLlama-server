@@ -7,6 +7,8 @@ from util import handle_error
 from litellm import completion 
 import os, dotenv, time 
 import json
+import gradio as gr
+
 dotenv.load_dotenv()
 
 # TODO: set your keys in .env or here:
@@ -42,14 +44,19 @@ def data_generator(response):
 
 @app.route('/chat/completions', methods=["POST"])
 def api_completion():
-    data = request.json
+    data = {
+      "prompt": "write me a function to print hello world"
+    }
+
     start_time = time.time() 
     if data.get('stream') == "True":
         data['stream'] = True # convert to boolean
     try:
         if "prompt" not in data:
             raise ValueError("data needs to have prompt")
+        os.environ["OPENAI_API_KEY"] = "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"
         data["model"] = "togethercomputer/CodeLlama-34b-Instruct" # by default use Together AI's CodeLlama model - https://api.together.xyz/playground/chat?model=togethercomputer%2FCodeLlama-34b-Instruct
+        data["model"] = "gpt-3.5-turbo"
         # COMPLETION CALL
         system_prompt = "Only respond to questions about code. Say 'I don't know' to anything outside of that."
         messages = [{"role": "system", "content": system_prompt}, {"role": "user", "content": data.pop("prompt")}]
@@ -78,7 +85,10 @@ def get_models():
         response = {"error": str(e)}
     return response, 200
 
-if __name__ == "__main__":
-  from waitress import serve
-  serve(app, host="0.0.0.0", port=4000, threads=500)
+# if __name__ == "__main__":
+#   from waitress import serve
+#   serve(app, host="0.0.0.0", port=4000, threads=500)
 
+
+interface = gr.Interface(fn=api_completion, inputs="text", outputs="text")
+interface.launch()
